@@ -37,6 +37,7 @@ from .const import (
     VERSION,
     TOKEN_FILE_NAME,
 )
+from .models import EvnexCoordinatorData
 
 SCAN_INTERVAL = timedelta(minutes=5)
 
@@ -135,21 +136,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     await _async_migrate_entries(hass, entry)
 
-    async def async_update_data(is_retry: bool = False):
+    async def async_update_data(is_retry: bool = False) -> EvnexCoordinatorData:
         """Fetch data from EVNEX API"""
 
-        data: dict = {
-            "user": None,
-            "org_briefs": {},  # by org_id
-            "org_insights": {},  # by org_id
-            "charge_points_by_org": {},  # by_org_id -> list of CPs
-            "charge_point_brief": {},  # by cp_id
-            "charge_point_details": {},  # by cp_id
-            "charge_point_override": {},  # by cp_id
-            "charge_point_sessions": {},  # by cp_id
-            "connector_brief": {},  # by (cp_id, connectorId)
-            "charge_point_to_org_map": {},  # by cp_id -> org_id
-        }
+        data = EvnexCoordinatorData()
 
         try:
             _LOGGER.info("Getting evnex user detail")
@@ -164,7 +154,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 evnex_client.access_token,
             )
 
-            data["user"] = account
+            data.user = account
 
             for org in account.organisations:
                 _LOGGER.info(
@@ -176,18 +166,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 except HTTPStatusError:
                     _LOGGER.info("Org ID not supported switching to Slug")
                     charge_points = await evnex_client.get_org_charge_points(org.slug)
-                data["charge_points_by_org"][org.id] = [cp for cp in charge_points]
-                data["org_briefs"][org.id] = org
+                data.charge_points_by_org[org.id] = [cp for cp in charge_points]
+                data.org_briefs[org.id] = org
                 _LOGGER.debug(f"Getting evnex org insights for {org.name}")
                 daily_insights = await evnex_client.get_org_insight(
                     days=7, org_id=org.id
                 )
-                data["org_insights"][org.id] = daily_insights
+                data.org_insights[org.id] = daily_insights
 
                 for charge_point in charge_points:
-                    data["charge_point_to_org_map"][charge_point.id] = (
-                        org.id
-                    )  # Map charge_point.id back to org.id
+                    # Map charge_point.id back to org.id
+                    data.charge_point_to_org_map[charge_point.id] = org.id
 
                     _LOGGER.debug(
                         f"Getting evnex charge point data for '{charge_point.name}'"
@@ -200,7 +189,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     )
 
                     for connector_brief in charge_point_detail.connectors:
-                        data["connector_brief"][
+                        data.connector_brief[
                             (charge_point.id, connector_brief.connectorId)
                         ] = connector_brief
 
@@ -225,28 +214,22 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                                     charge_point_id=charge_point.id
                                 )
                             )
+                            data.charge_point_override[charge_point.id] = (
+                                charge_point_override
+                            )
                         except ReadTimeout:
                             _LOGGER.warning(
                                 "Read timeout prevented getting charge point override"
                             )
-                            charge_point_override = None
                     else:
                         _LOGGER.debug(
                             "Not getting charge point override as charge point is not ONLINE"
                         )
-                        charge_point_override = None
 
-                    data["charge_point_brief"][charge_point.id] = charge_point
-                    data["charge_point_details"][charge_point.id] = charge_point_detail
-                    data["charge_point_override"][charge_point.id] = (
-                        charge_point_override
-                    )
-                    data["charge_point_sessions"][charge_point.id] = (
-                        charge_point_sessions
-                    )
+                    data.charge_point_brief[charge_point.id] = charge_point
+                    data.charge_point_details[charge_point.id] = charge_point_detail
+                    data.charge_point_sessions[charge_point.id] = charge_point_sessions
 
-            # Keep old key for migration purposes - can remove in future versions
-            data["charge_points"] = data["charge_points_by_org"]
             return data
         except NotAuthorizedException:
             if not is_retry:
@@ -271,7 +254,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             )
             raise UpdateFailed from err
 
-    coordinator = DataUpdateCoordinator(
+    coordinator: DataUpdateCoordinator[EvnexCoordinatorData] = DataUpdateCoordinator(
         hass,
         _LOGGER,
         name=DOMAIN,

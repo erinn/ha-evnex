@@ -6,7 +6,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .entity import EvnexChargerEntity
+from .entity import EvnexChargerEntity, EvnexCoordinator
 from evnex.api import Evnex
 
 from evnex.schema.user import EvnexUserDetail
@@ -14,19 +14,16 @@ from evnex.schema.user import EvnexUserDetail
 from evnex.schema.charge_points import EvnexChargePoint
 
 from .const import DATA_CLIENT, DATA_COORDINATOR, DOMAIN, CHARGER_SESSION_READY_STATES
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
 
 def _is_charger_session_ready(
-    coordinator: DataUpdateCoordinator, charger_id: str, connector_id: str
+    coordinator: EvnexCoordinator, charger_id: str, connector_id: str
 ) -> bool:
-    connector_brief = coordinator.data.get("connector_brief").get(
-        (charger_id, connector_id)
-    )
+    connector_brief = coordinator.data.connector_brief.get((charger_id, connector_id))
 
-    if coordinator.data["charge_point_details"][charger_id].networkStatus != "ONLINE":
+    if coordinator.data.charge_point_details[charger_id].networkStatus != "ONLINE":
         return False
 
     if connector_brief is not None:
@@ -39,7 +36,7 @@ class EvnexButtonSensorEntityDescription(ButtonEntityDescription):
     """Describes Mammotion button sensor entity."""
 
     press_fn: Callable[[Evnex, str, str], Awaitable[None]]
-    available: Callable[[DataUpdateCoordinator, str, str], bool]
+    available: Callable[[EvnexCoordinator, str, str], bool]
 
 
 EVNEX_BUTTONS: tuple[EvnexButtonSensorEntityDescription, ...] = (
@@ -66,14 +63,14 @@ async def async_setup_entry(
     hass_data = hass.data[DOMAIN][config_entry.entry_id]
     evnex_api_client = hass_data[DATA_CLIENT]
     coordinator = hass_data[DATA_COORDINATOR]
-    if not coordinator.data or not coordinator.data.get("user"):
+    if not coordinator.data or not coordinator.data.user:
         _LOGGER.warning(
             "Button setup: Coordinator data or user data not available yet."
         )
         return
-    user_detail: EvnexUserDetail = coordinator.data["user"]
+    user_detail: EvnexUserDetail = coordinator.data.user
     all_org_charge_points_data: dict[str, list[EvnexChargePoint]] = (
-        coordinator.data.get("charge_points", {})
+        coordinator.data.charge_points_by_org
     )
 
     for org_brief in user_detail.organisations:
@@ -103,7 +100,7 @@ class EvnexChargerButtonEntity(EvnexChargerEntity, ButtonEntity):
     def __init__(
         self,
         api_client,
-        coordinator: DataUpdateCoordinator,
+        coordinator: EvnexCoordinator,
         entity_description: EvnexButtonSensorEntityDescription,
         charger_id: str,
         org_id,

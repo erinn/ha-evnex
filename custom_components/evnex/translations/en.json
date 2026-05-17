@@ -20,7 +20,7 @@
                 "name": "Stop charging session"
             }
         },
-        "number": {
+      "number": {
           "connector_1_maximum_current": {
             "name": "Connector 1 maximum current"
           },
@@ -32,15 +32,12 @@
             "charger_network_status": {
                 "name": "Charger network status",
                 "state": {
-                  "online": "Online",
-                  "offline": "Offline"
+                    "offline": "Offline",
+                    "online": "Online"
                 }
             },
             "charger_session_history": {
                 "name": "Session history"
-            },
-            "connector_temperature": {
-              "name": "Connector temperature"
             },
             "connector_current_l1": {
                 "name": "Current L1"
@@ -60,17 +57,20 @@
             "connector_status": {
                 "name": "Connector status",
                 "state": {
-                    "offline": "Offline",
                     "available": "Available",
-                    "preparing": "Preparing to charge",
                     "charging": "Charging",
-                    "suspended_evse": "Charging has been paused by the charge point",
-                    "suspended_ev": "The vehicle is not currently requesting energy",
+                    "faulted": "Faulted",
                     "finishing": "Finished charging - unplug charge point",
+                    "offline": "Offline",
+                    "preparing": "Preparing to charge",
                     "reserved": "Reserved",
-                    "unavailable": "Disabled",
-                    "faulted": "Faulted"
+                    "suspended_ev": "The vehicle is not currently requesting energy",
+                    "suspended_evse": "Charging has been paused by the charge point",
+                    "unavailable": "Disabled"
                 }
+            },
+            "connector_temperature": {
+                "name": "Connector temperature"
             },
             "connector_voltage_l1": {
                 "name": "Voltage L1"

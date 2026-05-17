@@ -45,13 +45,13 @@ async def async_setup_entry(
     entities = []
     evnex_api_client = hass.data[DOMAIN][config_entry.entry_id][DATA_CLIENT]
     coordinator = hass.data[DOMAIN][config_entry.entry_id][DATA_COORDINATOR]
-    if not coordinator.data or not coordinator.data.get("user"):
+    if not coordinator.data or not coordinator.data.user:
         _LOGGER.warning(
             "Number setup: Coordinator data or user data not available yet."
         )
         return
-    user_detail = coordinator.data["user"]
-    all_org_charge_points_data = coordinator.data.get("charge_points_by_org", {})
+    user_detail = coordinator.data.user
+    all_org_charge_points_data = coordinator.data.charge_points_by_org
 
     for org_brief in user_detail.organisations:
         org_id = org_brief.id
@@ -60,7 +60,7 @@ async def async_setup_entry(
         for charge_point_obj in charge_points_in_org:
             charger_id = charge_point_obj.id
             charge_point_detail_v3: EvnexChargePointDetailV3 | None = (
-                coordinator.data.get("charge_point_details", {}).get(charger_id)
+                coordinator.data.charge_point_details.get(charger_id)
             )
 
             if charge_point_detail_v3 and charge_point_detail_v3.connectors:
