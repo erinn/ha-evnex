@@ -493,11 +493,15 @@ class EvnexChargePortConnectorCurrentSensor(
         self.connector_brief = self.coordinator.data.connector_brief.get(
             (self.charger_id, self.connector_id)
         )
-        if self.connector_brief and self.connector_brief.meter:
-            return getattr(
-                self.connector_brief.meter, f"current{str.capitalize(self.line)}"
-            )
-        return None
+        if not self.connector_brief or not self.connector_brief.meter:
+            return None
+        # Meter readings linger after a disconnect; only report current draw
+        # while the connector is actively charging.
+        if self.connector_brief.ocppStatus != "CHARGING":
+            return 0
+        return getattr(
+            self.connector_brief.meter, f"current{str.capitalize(self.line)}"
+        )
 
 
 class EvnexChargePortConnectorPowerSensor(
@@ -532,12 +536,16 @@ class EvnexChargePortConnectorPowerSensor(
             (self.charger_id, self.connector_id)
         )
         if (
-            self.connector_brief
-            and self.connector_brief.meter
-            and self.connector_brief.meter.power is not None
+            not self.connector_brief
+            or not self.connector_brief.meter
+            or self.connector_brief.meter.power is None
         ):
-            return self.connector_brief.meter.power / 1000
-        return None
+            return None
+        # Meter readings linger after a disconnect; only report power while
+        # the connector is actively charging.
+        if self.connector_brief.ocppStatus != "CHARGING":
+            return 0
+        return self.connector_brief.meter.power / 1000
 
 
 class EvnexChargePortConnectorFrequencySensor(
