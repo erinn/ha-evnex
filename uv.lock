@@ -612,7 +612,7 @@ wheels = [
 
 [[package]]
 name = "evnex"
-version = "0.4.9"
+version = "0.5.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "boto3" },
@@ -622,14 +622,14 @@ dependencies = [
     { name = "pydantic-settings" },
     { name = "tenacity" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/70/0a/d33d4cf75ef9d2eb40687e67e6c3b56f5103b2e67b4c10fb55f1d08adc6e/evnex-0.4.9.tar.gz", hash = "sha256:63946548deaf849c6845c676f2850a0db4ca058200be4ac7b52e2ca31b67b397", size = 51775, upload-time = "2025-09-25T23:03:33.441Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/93/bd/cbb880640f00f884a1ec4a786c63cdd092237a482b631f1f9c2bd7c64789/evnex-0.5.0.tar.gz", hash = "sha256:5a200ba9d1ab45bf220b2db712252213d6fb6aee319c76e7c687d682763a6978", size = 74485, upload-time = "2026-05-20T07:22:00.638Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/0f/47/c1c906a0e75a03a122affd8d275b0dd2e73db0ad0174af7b699199307575/evnex-0.4.9-py3-none-any.whl", hash = "sha256:1063fd4a4cfe9e1095b4db883da79bd9a926e055768c466bb386597a015aabec", size = 18006, upload-time = "2025-09-25T23:03:32.206Z" },
+    { url = "https://files.pythonhosted.org/packages/53/5c/f83f04e91be5292a8edb2c3f41c1951b7fecec361bf643ddae06bfbfb9e3/evnex-0.5.0-py3-none-any.whl", hash = "sha256:ba27c356f6dcb442eaf50aeb151962e470404f1dbd98eb34a0cd6eb2e6a572c2", size = 18183, upload-time = "2026-05-20T07:21:59.241Z" },
 ]
 
 [[package]]
 name = "evnex-ha"
-version = "0.7.8"
+version = "0.7.9"
 source = { editable = "." }
 dependencies = [
     { name = "evnex" },
@@ -646,7 +646,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "evnex", specifier = ">=0.4.9" },
+    { name = "evnex", specifier = ">=0.5.0" },
     { name = "homeassistant", specifier = ">=2025.1.0" },
 ]
 
