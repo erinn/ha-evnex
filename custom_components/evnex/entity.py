@@ -16,37 +16,38 @@ from homeassistant.helpers.update_coordinator import (
 )
 
 from .const import DOMAIN, NAME
+from .models import EvnexCoordinatorData
+
+type EvnexCoordinator = DataUpdateCoordinator[EvnexCoordinatorData]
 
 _LOGGER = logging.getLogger(__name__)
 
 
-class EvnexOrgEntity(CoordinatorEntity):
+class EvnexOrgEntity(CoordinatorEntity[EvnexCoordinator]):
     """Base Entity for an Evnex Org Sensor"""
 
     _attr_has_entity_name = True
 
     def __init__(
-        self, coordinator: DataUpdateCoordinator, org_id: str | None = None
+        self, coordinator: EvnexCoordinator, org_id: str | None = None
     ) -> None:
         """Initialize an Evnex Org"""
         super().__init__(coordinator)
+        data = coordinator.data
         if org_id is None:
             # Ensure user and organisations data is present
-            if coordinator.data.get("user") and coordinator.data["user"].organisations:
-                org_id = coordinator.data["user"].organisations[0].id
+            if data and data.user and data.user.organisations:
+                org_id = data.user.organisations[0].id
             else:
                 # Fallback or raise error if org_id cannot be determined,
                 raise ValueError("Cannot determine default evnex organization ID")
         self.org_id = org_id
-        if (
-            not coordinator.data
-            or not coordinator.data.get("org_briefs")
-            or self.org_id not in coordinator.data["org_briefs"]
-        ):
+        if not data or not data.org_briefs or self.org_id not in data.org_briefs:
             _LOGGER.error(
-                f"Organization brief for ID {self.org_id} not found in coordinator data. Available org_briefs: {coordinator.data.get('org_briefs')}"
+                f"Organization brief for ID {self.org_id} not found in coordinator data. "
+                f"Available org_briefs: {data.org_briefs if data else None}"
             )
-        self.org_brief: EvnexOrgBrief = coordinator.data["org_briefs"][org_id]
+        self.org_brief: EvnexOrgBrief = data.org_briefs[org_id]
 
         self.device_name = self.org_brief.name
         self.device_id = self.org_brief.id
@@ -64,14 +65,14 @@ class EvnexOrgEntity(CoordinatorEntity):
         )
 
 
-class EvnexChargerEntity(CoordinatorEntity):
+class EvnexChargerEntity(CoordinatorEntity[EvnexCoordinator]):
     """Base Entity for a specific evnex charger"""
 
     _attr_has_entity_name = True
 
     def __init__(
         self,
-        coordinator: DataUpdateCoordinator,
+        coordinator: EvnexCoordinator,
         charger_id: str,
         org_id: str,
         key: str | None = None,
@@ -79,40 +80,33 @@ class EvnexChargerEntity(CoordinatorEntity):
         """Initialize the ChargePoint entity."""
         super().__init__(coordinator)
         self.org_id = org_id
-        if not coordinator.data or charger_id not in coordinator.data.get(
-            "charge_point_brief", {}
-        ):
+        data = coordinator.data
+        if not data or charger_id not in data.charge_point_brief:
             _LOGGER.error(
                 f"Charge point brief for ID {charger_id} (org {org_id}) not found."
             )
             raise ValueError(f"Charge point brief for ID {charger_id} not found.")
-        self.charge_point_brief: EvnexChargePoint = coordinator.data[
-            "charge_point_brief"
-        ][charger_id]
+        self.charge_point_brief: EvnexChargePoint = data.charge_point_brief[charger_id]
 
         self.connector_brief_by_id = {}
-        charge_point_detail_v3_data = coordinator.data.get(
-            "charge_point_details", {}
-        ).get(charger_id)
+        charge_point_detail_v3_data = data.charge_point_details.get(charger_id)
         if charge_point_detail_v3_data and charge_point_detail_v3_data.connectors:
             for connector_v3_brief in charge_point_detail_v3_data.connectors:
                 self.connector_brief_by_id[connector_v3_brief.connectorId] = (
                     connector_v3_brief
                 )
 
-        self.charge_point_detail: EvnexChargePointDetail = coordinator.data[
-            "charge_point_details"
-        ][charger_id]
+        self.charge_point_detail: EvnexChargePointDetail = data.charge_point_details[
+            charger_id
+        ]
 
-        if charger_id not in coordinator.data.get("charge_point_sessions", {}):
+        if charger_id not in data.charge_point_sessions:
             _LOGGER.warning(
                 f"Charge point sessions for charger {charger_id} (org {org_id}) not found, defaulting to empty list."
             )
             self.charge_point_sessions = []
         else:
-            self.charge_point_sessions = coordinator.data["charge_point_sessions"][
-                charger_id
-            ]
+            self.charge_point_sessions = data.charge_point_sessions[charger_id]
 
         self.device_name = self.charge_point_brief.name
         self.charger_id = charger_id
@@ -154,14 +148,12 @@ class EvnexChargerEntity(CoordinatorEntity):
         )
 
     @property
-    def charger_status(self) -> EvnexChargePointDetail:
-        return self.coordinator.data.get("charge_point_details", {}).get(
-            self.charger_id
-        )
+    def charger_status(self) -> EvnexChargePointDetail | None:
+        return self.coordinator.data.charge_point_details.get(self.charger_id)
 
     @property
-    def technical_info(self) -> EvnexChargePoint:
-        return self.coordinator.data.get("charge_point_brief", {}).get(self.charger_id)
+    def technical_info(self) -> EvnexChargePoint | None:
+        return self.coordinator.data.charge_point_brief.get(self.charger_id)
 
 
 class EvnexChargePointConnectorEntity(EvnexChargerEntity):
@@ -171,7 +163,7 @@ class EvnexChargePointConnectorEntity(EvnexChargerEntity):
 
     def __init__(
         self,
-        coordinator: DataUpdateCoordinator,
+        coordinator: EvnexCoordinator,
         charger_id: str,
         org_id: str,
         connector_id: str = "1",

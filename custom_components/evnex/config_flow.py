@@ -78,6 +78,8 @@ class EvnexConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ignore
                 step_id="user", data_schema=STEP_USER_DATA_SCHEMA
             )
 
+        user_input[CONF_USERNAME] = user_input[CONF_USERNAME].lower()
+
         errors = {}
 
         try:

@@ -45,6 +45,14 @@
         "name": "Connector 2 availability"
       }
     },
+     "number": {
+      "connector_1_maximum_current": {
+        "name": "Connector 1 maximum current"
+      },
+      "connector_2_maximum_current": {
+        "name": "Connector 2 maximum current"
+      }
+    },
     "sensor": {
       "org_wide_power_usage_today": {
         "name": "Total power usage today"
