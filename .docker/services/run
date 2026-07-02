@@ -6,10 +6,28 @@ bashio::log.green "Installing evnex library for Home Assistant Core..."
 
 cd /config || bashio::exit.nok "Can't find config folder!"
 
-pip3 install --upgrade evnex || bashio::log.info "Failed to install python evnex library"
+bashio::log.info "Directory $(pwd)"
+
+python -m homeassistant --script check_config --config /config
+
+
+
+bashio::log.info "Installing python-evnex via pip."
+# pip3 install --upgrade evnex || bashio::log.info "Failed to install python evnex library"
+
+pip install git+https://github.com/erinn/python-evnex@2fa || bashio::log.info "Failed to install python evnex library!"
+
+if [[ ! -d custom_components/hacs ]]; then
+  bashio::log.green "Installing HACS for Home Assistant Core..."
+
+  wget -O - https://get.hacs.xyz | bash -
+fi
 
 # Enable Jemalloc for Home Assistant Core, unless disabled
 if [[ -z "${DISABLE_JEMALLOC+x}" ]]; then
   export LD_PRELOAD="/usr/local/lib/libjemalloc.so.2"
 fi
+
+bashio::log.green "Home Assistant will soon be running and available at http://localhost:8123, if you have forgotten your password follow the instructions here: https://www.home-assistant.io/docs/locked_out/#to-reset-a-users-password-via-the-container-command-line"
+
 exec python3 -m homeassistant --config /config

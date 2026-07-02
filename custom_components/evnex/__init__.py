@@ -3,30 +3,33 @@ Custom integration to integrate Evnex with Home Assistant.
 
 """
 
-import os
 import json
 import logging
+import os
 from datetime import timedelta
 from typing import Optional
 
-from evnex.api import Evnex
-from evnex.schema.charge_points import EvnexChargePoint, EvnexChargePointOverrideConfig
-from evnex.schema.v3.charge_points import EvnexChargePointDetail
-
-from evnex.schema.user import EvnexUserDetail
-from evnex.errors import NotAuthorizedException
-
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import CONF_PASSWORD, CONF_USERNAME, Platform
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.const import CONF_USERNAME, CONF_PASSWORD, Platform
-from homeassistant.helpers import entity_registry as er
 from homeassistant.exceptions import ConfigEntryAuthFailed
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.httpx_client import get_async_client
 from homeassistant.helpers.update_coordinator import (
     DataUpdateCoordinator,
     UpdateFailed,
 )
 from httpx import HTTPStatusError, ReadTimeout
+from pycognito.exceptions import (
+    SMSMFAChallengeException,
+    SoftwareTokenMFAChallengeException,
+)
+
+from evnex.api import Evnex
+from evnex.errors import NotAuthorizedException
+from evnex.schema.charge_points import EvnexChargePoint, EvnexChargePointOverrideConfig
+from evnex.schema.user import EvnexUserDetail
+from evnex.schema.v3.charge_points import EvnexChargePointDetail
 
 from .const import (
     DATA_CLIENT,
@@ -34,8 +37,8 @@ from .const import (
     DOMAIN,
     ISSUE_URL,
     PLATFORMS,
-    VERSION,
     TOKEN_FILE_NAME,
+    VERSION,
 )
 
 SCAN_INTERVAL = timedelta(minutes=5)
@@ -104,11 +107,20 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     username = entry.data[CONF_USERNAME]
     password = entry.data[CONF_PASSWORD]
 
-    # Load tokens from storage
-    evnex_auth_tokens = await hass.async_add_executor_job(
-        retrieve_evnex_auth_tokens, hass, entry
-    )
-    evnex_auth_tokens = {} if evnex_auth_tokens is None else evnex_auth_tokens
+    # Load tokens: prioritize ConfigEntry data, fallback to legacy storage
+    id_token = entry.data.get("id_token")
+    refresh_token = entry.data.get("refresh_token")
+    access_token = entry.data.get("access_token")
+
+    if not (id_token and refresh_token and access_token):
+        _LOGGER.debug("Tokens missing in ConfigEntry, checking legacy session file")
+        evnex_auth_tokens = await hass.async_add_executor_job(
+            retrieve_evnex_auth_tokens, hass, entry
+        )
+        if evnex_auth_tokens:
+            id_token = id_token or evnex_auth_tokens.get("id_token")
+            refresh_token = refresh_token or evnex_auth_tokens.get("refresh_token")
+            access_token = access_token or evnex_auth_tokens.get("access_token")
 
     httpx_client = get_async_client(hass)
 
@@ -117,15 +129,44 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             Evnex,
             username,
             password,
-            evnex_auth_tokens.get("id_token"),
-            evnex_auth_tokens.get("refresh_token"),
-            evnex_auth_tokens.get("access_token"),
+            id_token,
+            refresh_token,
+            access_token,
             None,
             httpx_client,
         )
 
-    except NotAuthorizedException as exc:
-        _LOGGER.error("Not authorized while updating evnex info")
+        if not refresh_token:
+            _LOGGER.debug("No refresh token, performing initial authentication")
+            await hass.async_add_executor_job(evnex_client.authenticate)
+
+            # Update entry and legacy storage with latest tokens
+            _LOGGER.debug("Initial authentication successful, saving tokens")
+            new_data = {
+                **entry.data,
+                "id_token": evnex_client.id_token,
+                "refresh_token": evnex_client.refresh_token,
+                "access_token": evnex_client.access_token,
+            }
+            hass.config_entries.async_update_entry(entry, data=new_data)
+
+            await hass.async_add_executor_job(
+                persist_evnex_auth_tokens,
+                hass,
+                entry,
+                evnex_client.id_token,
+                evnex_client.refresh_token,
+                evnex_client.access_token,
+            )
+        else:
+            _LOGGER.debug("Using existing refresh token for session")
+
+    except (
+        NotAuthorizedException,
+        SMSMFAChallengeException,
+        SoftwareTokenMFAChallengeException,
+    ) as exc:
+        _LOGGER.error("Not authorized or MFA required while updating evnex info")
         raise ConfigEntryAuthFailed from exc
     except HTTPStatusError as exc:
         _LOGGER.error("Failed to authenticate to evnex api")
@@ -154,15 +195,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         try:
             _LOGGER.info("Getting evnex user detail")
             account: EvnexUserDetail = await evnex_client.get_user_detail()
-
-            await hass.async_add_executor_job(
-                persist_evnex_auth_tokens,
-                hass,
-                entry,
-                evnex_client.id_token,
-                evnex_client.refresh_token,
-                evnex_client.access_token,
-            )
 
             data["user"] = account
 
@@ -251,7 +283,24 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         except NotAuthorizedException:
             if not is_retry:
                 _LOGGER.debug("Refreshing auth and trying again")
-                await hass.async_add_executor_job(evnex_client.authenticate)
+                try:
+                    await hass.async_add_executor_job(evnex_client.authenticate)
+                except (
+                    SMSMFAChallengeException,
+                    SoftwareTokenMFAChallengeException,
+                ) as mfa_exc:
+                    _LOGGER.error("MFA required during token refresh")
+                    raise ConfigEntryAuthFailed from mfa_exc
+
+                # Update entry and legacy storage with latest tokens
+                new_data = {
+                    **entry.data,
+                    "id_token": evnex_client.id_token,
+                    "refresh_token": evnex_client.refresh_token,
+                    "access_token": evnex_client.access_token,
+                }
+                hass.config_entries.async_update_entry(entry, data=new_data)
+
                 await hass.async_add_executor_job(
                     persist_evnex_auth_tokens,
                     hass,

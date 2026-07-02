@@ -1,131 +1,147 @@
 {
-    "config": {
-        "error": {
-            "invalid_credentials": "Invalid credentials"
-        },
-        "step": {
-            "user": {
-                "data": {
-                    "password": "Password",
-                    "username": "Username"
-                },
-                "description": "Please enter your evnex login credentials.",
-                "title": "Evnex Credentials"
-            }
-        }
+  "config": {
+    "error": {
+      "invalid_credentials": "Invalid credentials",
+      "invalid_mfa_code": "Invalid authentication code"
     },
-    "entity": {
-        "button": {
-            "charger_stop_session": {
-                "name": "Stop charging session"
-            }
+    "step": {
+      "user": {
+        "data": {
+          "password": "Password",
+          "username": "Username"
         },
-        "number": {
-          "connector_1_maximum_current": {
-            "name": "Connector 1 maximum current"
-          },
-          "connector_2_maximum_current": {
-            "name": "Connector 2 maximum current"
+        "description": "Please enter your evnex login credentials.",
+        "title": "Evnex Credentials"
+      },
+      "mfa": {
+          "title": "Two-factor Authentication",
+          "description": "Please enter the code from your authenticator app or sent via SMS.",
+          "data": {
+              "code": "Authentication Code"
           }
-        },
-        "sensor": {
-            "charger_network_status": {
-                "name": "Charger network status",
-                "state": {
-                  "online": "Online",
-                  "offline": "Offline"
-                }
-            },
-            "charger_session_history": {
-                "name": "Session history"
-            },
-            "connector_temperature": {
-              "name": "Connector temperature"
-            },
-            "connector_current_l1": {
-                "name": "Current L1"
-            },
-            "connector_current_l2": {
-                "name": "Current L2"
-            },
-            "connector_current_l3": {
-                "name": "Current L3"
-            },
-            "connector_frequency": {
-                "name": "Metered frequency"
-            },
-            "connector_power": {
-                "name": "Metered power"
-            },
-            "connector_status": {
-                "name": "Connector status",
-                "state": {
-                    "offline": "Offline",
-                    "available": "Available",
-                    "preparing": "Preparing to charge",
-                    "charging": "Charging",
-                    "suspended_evse": "Charging has been paused by the charge point",
-                    "suspended_ev": "The vehicle is not currently requesting energy",
-                    "finishing": "Finished charging - unplug charge point",
-                    "reserved": "Reserved",
-                    "unavailable": "Disabled",
-                    "faulted": "Faulted"
-                }
-            },
-            "connector_voltage_l1": {
-                "name": "Voltage L1"
-            },
-            "connector_voltage_l2": {
-                "name": "Voltage L2"
-            },
-            "connector_voltage_l3": {
-                "name": "Voltage L3"
-            },
-            "org_tier": {
-                "name": "Organisation tier"
-            },
-            "org_wide_charger_sessions_today": {
-                "name": "Charger sessions today"
-            },
-            "org_wide_power_usage_today": {
-                "name": "Total power usage today"
-            },
-            "session_cost": {
-                "name": "Charge cost"
-            },
-            "session_energy": {
-                "name": "Session energy added"
-            },
-            "session_start_time": {
-                "name": "Last session start"
-            },
-            "session_time": {
-                "name": "Charge time"
-            }
-        },
-        "switch": {
-            "charger_charge_now": {
-                "name": "Charge now"
-            },
-            "connector_1_availability": {
-                "name": "Connector 1 availability"
-            },
-            "connector_2_availability": {
-                "name": "Connector 2 availability"
-            }
-        }
+      },
+      "reauth_confirm": {
+          "title": "Authenticate {username}",
+          "description": "The session for {username} has expired. Please enter the password to re-authenticate.",
+          "data": {
+              "password": "Password"
+          }
+      }
+      }
+
+  },
+  "entity": {
+    "button": {
+      "charger_stop_session": {
+        "name": "Stop charging session"
+      }
     },
-    "options": {
-        "error": {
-            "invalid_credentials": "Invalid credentials"
-        },
-        "step": {
-            "user": {
-                "data": {
-                    "password": "Password",
-                    "username": "Username"
-                }
-            }
+    "number": {
+      "connector_1_maximum_current": {
+        "name": "Connector 1 maximum current"
+      },
+      "connector_2_maximum_current": {
+        "name": "Connector 2 maximum current"
+      }
+    },
+    "sensor": {
+      "charger_network_status": {
+        "name": "Charger network status",
+        "state": {
+          "online": "Online",
+          "offline": "Offline"
         }
+      },
+      "charger_session_history": {
+        "name": "Session history"
+      },
+      "connector_temperature": {
+        "name": "Connector temperature"
+      },
+      "connector_current_l1": {
+        "name": "Current L1"
+      },
+      "connector_current_l2": {
+        "name": "Current L2"
+      },
+      "connector_current_l3": {
+        "name": "Current L3"
+      },
+      "connector_frequency": {
+        "name": "Metered frequency"
+      },
+      "connector_power": {
+        "name": "Metered power"
+      },
+      "connector_status": {
+        "name": "Connector status",
+        "state": {
+          "offline": "Offline",
+          "available": "Available",
+          "preparing": "Preparing to charge",
+          "charging": "Charging",
+          "suspended_evse": "Charging has been paused by the charge point",
+          "suspended_ev": "The vehicle is not currently requesting energy",
+          "finishing": "Finished charging - unplug charge point",
+          "reserved": "Reserved",
+          "unavailable": "Disabled",
+          "faulted": "Faulted"
+        }
+      },
+      "connector_voltage_l1": {
+        "name": "Voltage L1"
+      },
+      "connector_voltage_l2": {
+        "name": "Voltage L2"
+      },
+      "connector_voltage_l3": {
+        "name": "Voltage L3"
+      },
+      "org_tier": {
+        "name": "Organisation tier"
+      },
+      "org_wide_charger_sessions_today": {
+        "name": "Charger sessions today"
+      },
+      "org_wide_power_usage_today": {
+        "name": "Total power usage today"
+      },
+      "session_cost": {
+        "name": "Charge cost"
+      },
+      "session_energy": {
+        "name": "Session energy added"
+      },
+      "session_start_time": {
+        "name": "Last session start"
+      },
+      "session_time": {
+        "name": "Charge time"
+      }
+    },
+    "switch": {
+      "charger_charge_now": {
+        "name": "Charge now"
+      },
+      "connector_1_availability": {
+        "name": "Connector 1 availability"
+      },
+      "connector_2_availability": {
+        "name": "Connector 2 availability"
+      }
     }
+  },
+  "options": {
+    "error": {
+      "invalid_credentials": "Invalid credentials"
+    },
+    "step": {
+      "user": {
+        "data": {
+          "password": "Password",
+          "username": "Username"
+        }
+      }
+    }
+  }
 }
