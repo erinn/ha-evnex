@@ -25,4 +25,3 @@ build-backend = "pdm.backend"
 
 [tool.uv.sources]
 evnex = { git = "https://github.com/erinn/python-evnex", branch = "2fa" }
-

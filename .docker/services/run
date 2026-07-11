@@ -30,4 +30,5 @@ fi
 
 bashio::log.green "Home Assistant will soon be running and available at http://localhost:8123, if you have forgotten your password follow the instructions here: https://www.home-assistant.io/docs/locked_out/#to-reset-a-users-password-via-the-container-command-line"
 
-exec python3 -m homeassistant --config /config
+# skip-pip-packages allows dev versions of the evnex package to be installed.
+exec python3 -m homeassistant --config /config --skip-pip-packages evnex

@@ -4,6 +4,7 @@ services:
     image: homeassistant/home-assistant:stable
     volumes:
       - ./.docker/data:/config
+      - ./container_config/configuration.yaml:/config/configuration.yaml
       - ./custom_components/evnex:/config/custom_components/evnex
       - ./.docker/services:/etc/services.d/home-assistant
     restart: always
