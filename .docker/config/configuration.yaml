@@ -15,5 +15,5 @@ system_health:
 logger:
   default: info
   logs:
-    custom_components.ha-evnex: debug
+    custom_components.evnex: debug
     evnex: debug
